@@ -43,6 +43,8 @@ services:
       MODEL_CACHE_DIR: /app/models_cache
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://localhost:5173}
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-10}
+      MAX_VIDEO_MB: ${MAX_VIDEO_MB:-100}
+      VIDEO_MAX_FRAMES: ${VIDEO_MAX_FRAMES:-16}
       ML_ENABLE_DEEP: ${ML_ENABLE_DEEP:-true}
       UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
       RUN_MIGRATIONS: ${RUN_MIGRATIONS:-true}

@@ -1,4 +1,4 @@
-import { Check, Cpu, Microscope, Brain, Crosshair, Eye, Loader2 } from 'lucide-react'
+import { Check, Cpu, Microscope, Brain, Crosshair, Eye, Loader2, Film, ScanFace, Bot, Activity, FileText } from 'lucide-react'
 
 export const STAGES = [
   { key: 'pre', label: 'Preprocessing', text: 'Normalising image, hashing & reading EXIF', icon: Cpu },
@@ -8,26 +8,35 @@ export const STAGES = [
   { key: 'explain', label: 'Explainability', text: 'Building heatmaps & summary', icon: Eye },
 ]
 
+export const VIDEO_STAGES = [
+  { key: 'frames', label: 'Extracting frames', text: 'Probing the container & sampling frames evenly', icon: Film },
+  { key: 'faces', label: 'Detecting faces', text: 'Locating faces in every sampled frame', icon: ScanFace },
+  { key: 'deepfake', label: 'Deepfake analysis', text: 'Scoring each face for synthetic manipulation', icon: Brain },
+  { key: 'ai', label: 'AI-generation check', text: 'Checking frames for generative-model traces', icon: Bot },
+  { key: 'temporal', label: 'Temporal analysis', text: 'Comparing consistency across the timeline', icon: Activity },
+  { key: 'report', label: 'Building report', text: 'Fusing signals into a verdict & summary', icon: FileText },
+]
+
 /** `active` = index of the stage in progress; `uploadPct` shown while uploading (active === -1). */
-export default function AnalysisProgress({ active, uploadPct, done }) {
+export default function AnalysisProgress({ active, uploadPct, done, stages = STAGES, uploadLabel = 'Uploading image' }) {
   return (
     <div className="space-y-3" aria-live="polite">
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium text-slate-700">
-          {done ? 'Analysis complete' : active < 0 ? `Uploading image… ${uploadPct ?? 0}%` : `${STAGES[active]?.label}…`}
+          {done ? 'Analysis complete' : active < 0 ? `${uploadLabel}… ${uploadPct ?? 0}%` : `${stages[active]?.label}…`}
         </span>
         <span className="tabular-nums text-slate-500">
-          {done ? '100%' : `${Math.round(Math.max(0, active) * (100 / STAGES.length) + (active < 0 ? 0 : 8))}%`}
+          {done ? '100%' : `${Math.round(Math.max(0, active) * (100 / stages.length) + (active < 0 ? 0 : 8))}%`}
         </span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-slate-100">
         <div
           className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500 transition-all duration-700"
-          style={{ width: done ? '100%' : `${active < 0 ? (uploadPct || 0) * 0.08 : active * (100 / STAGES.length) + 8}%` }}
+          style={{ width: done ? '100%' : `${active < 0 ? (uploadPct || 0) * 0.08 : active * (100 / stages.length) + 8}%` }}
         />
       </div>
       <ol className="mt-4 space-y-2">
-        {STAGES.map((s, i) => {
+        {stages.map((s, i) => {
           const state = done || i < active ? 'done' : i === active ? 'active' : 'todo'
           const Icon = s.icon
           return (

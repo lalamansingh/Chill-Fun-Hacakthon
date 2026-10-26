@@ -52,9 +52,10 @@ def test_analysis_history_dashboard_report(client, token):
     assert hist["total"] == 2 and hist["page"] == 1 and hist["page_size"] == 10
     assert [i["analysis_id"] for i in hist["items"]] == [a2["id"], a["id"]]
     item = hist["items"][1]
-    assert set(item) == {"analysis_id", "image_id", "original_filename", "verdict", "authenticity_score",
+    assert set(item) >= {"analysis_id", "image_id", "original_filename", "verdict", "authenticity_score",
                          "confidence", "created_at", "thumbnail_url"}
     assert item["thumbnail_url"] == f"/api/images/{img['id']}/file"
+    assert item["media_type"] == "image" and item["video_id"] is None
 
     q = client.get("/api/history", params={"q": "HOLIDAY"}, headers=h).json()
     assert q["total"] == 1 and q["items"][0]["analysis_id"] == a["id"]

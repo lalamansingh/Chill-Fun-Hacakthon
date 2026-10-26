@@ -12,7 +12,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app import models  # noqa: F401  (register tables on Base.metadata)
 from app.config import get_settings
 from app.database import Base, engine
-from app.routes import analyses, auth, history, images, reports
+from app.routes import analyses, auth, history, images, reports, video_analyses, videos
 from app.schemas import HealthOut
 from app.services import ml, storage
 
@@ -94,3 +94,5 @@ app.include_router(images.router)
 app.include_router(analyses.router)
 app.include_router(reports.router)
 app.include_router(history.router)
+app.include_router(videos.router)
+app.include_router(video_analyses.router)

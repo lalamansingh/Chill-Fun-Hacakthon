@@ -23,11 +23,30 @@ export const analysesApi = {
   restore: (id, body) => client.post(`/analyses/${id}/restore`, body).then((r) => r.data),
 }
 
+export const videosApi = {
+  upload: (file, onUploadProgress) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    // Videos can be large: no request timeout for the upload itself.
+    return client.post('/videos', fd, { onUploadProgress, timeout: 0 }).then((r) => r.data)
+  },
+  list: () => client.get('/videos').then((r) => r.data),
+  get: (id) => client.get(`/videos/${id}`).then((r) => r.data),
+  remove: (id) => client.delete(`/videos/${id}`),
+}
+
+export const videoAnalysesApi = {
+  // Runs synchronously on the server (typically 10–30 s, longer on slow CPUs).
+  create: (videoId) => client.post('/video-analyses', { video_id: videoId }, { timeout: 600000 }).then((r) => r.data),
+  get: (id) => client.get(`/video-analyses/${id}`).then((r) => r.data),
+}
+
 export const historyApi = {
-  list: ({ q, verdict, page = 1, page_size = 10 } = {}) => {
+  list: ({ q, verdict, media, page = 1, page_size = 10 } = {}) => {
     const params = { page, page_size }
     if (q) params.q = q
     if (verdict) params.verdict = verdict
+    if (media) params.media = media
     return client.get('/history', { params }).then((r) => r.data)
   },
 }

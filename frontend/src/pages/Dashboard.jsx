@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom'
 import {
   Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
-import { Activity, Gauge, ScanSearch, RefreshCw, Images, History as HistoryIcon, AlertTriangle } from 'lucide-react'
+import { Activity, Gauge, ScanSearch, RefreshCw, Images, History as HistoryIcon, AlertTriangle, Film } from 'lucide-react'
 import PageHeader from '../components/PageHeader.jsx'
 import EmptyState from '../components/EmptyState.jsx'
 import HistoryRow from '../components/HistoryRow.jsx'
+import { itemKey } from '../lib/media.js'
 import { dashboardApi } from '../api/index.js'
 import { errorMessage } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
@@ -87,7 +88,7 @@ export default function Dashboard() {
     <PageHeader
       eyebrow="Overview"
       title={`Welcome, ${firstName}`}
-      subtitle="Your image-forensics activity at a glance."
+      subtitle="Your image and video forensics activity at a glance."
       actions={
         <>
           <button className="btn-outline" onClick={load} disabled={loading} aria-label="Refresh">
@@ -116,6 +117,14 @@ export default function Dashboard() {
   const trend = (stats?.trend || []).map((d) => ({ ...d, label: weekdayLabel(d.date) }))
   const pieData = VERDICT_KEYS.map((k) => ({ key: k, name: VERDICTS[k].label, value: byVerdict[k] || 0 })).filter((d) => d.value > 0)
   const flagged = total - (byVerdict.authentic || 0)
+  // Older backends don't send video fields — fall back to the image-only subtitle.
+  const byMedia = stats?.by_media
+  const hasVideoStats = byMedia != null || stats?.total_videos != null
+  const imageCount = byMedia?.image ?? Math.max(0, total - (byMedia?.video ?? 0))
+  const videoCount = byMedia?.video ?? 0
+  const totalSub = hasVideoStats
+    ? `${imageCount} image${imageCount === 1 ? '' : 's'} · ${videoCount} video${videoCount === 1 ? '' : 's'}`
+    : `${stats?.total_images ?? 0} images uploaded`
 
   if (total === 0) {
     return (
@@ -127,12 +136,17 @@ export default function Dashboard() {
             <div>
               <h2 className="font-serif text-3xl font-bold text-white">Run your first analysis</h2>
               <p className="mt-3 text-slate-300">
-                Upload a JPEG, PNG or WebP image. TruthLens will check it for deepfakes, AI generation and manipulation, and explain
-                every finding with heatmaps and region evidence.
+                Upload a JPEG, PNG or WebP image — or a short video. TruthLens will check it for deepfakes, AI generation and
+                manipulation, and explain every finding with heatmaps, region evidence and a frame-by-frame timeline.
               </p>
-              <Link to="/analyze" className="btn-primary mt-6 px-6 py-3 text-base">
-                <ScanSearch className="h-5 w-5" aria-hidden /> Analyze an image
-              </Link>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link to="/analyze" className="btn-primary px-6 py-3 text-base">
+                  <ScanSearch className="h-5 w-5" aria-hidden /> Analyze an image
+                </Link>
+                <Link to="/analyze?type=video" className="btn border border-white/15 px-6 py-3 text-base text-white hover:bg-white/10">
+                  <Film className="h-5 w-5" aria-hidden /> Analyze a video
+                </Link>
+              </div>
             </div>
             <ol className="space-y-3">
               {['Drop an image into the upload zone', 'Watch the five-stage forensic pipeline', 'Explore the verdict, heatmap & signals', 'Download the PDF report'].map((t, i) => (
@@ -153,7 +167,7 @@ export default function Dashboard() {
       {header}
       <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <StatTile icon={Activity} label="Total analyses" value={total} sub={`${stats.total_images ?? 0} images uploaded`} />
+          <StatTile icon={Activity} label="Total analyses" value={total} sub={totalSub} />
           <StatTile
             icon={Gauge}
             label="Avg authenticity"
@@ -162,7 +176,7 @@ export default function Dashboard() {
             accent="text-violet-600 bg-violet-50"
             valueColor={scoreColor(stats.avg_authenticity_score)}
           />
-          <StatTile icon={AlertTriangle} label="Flagged images" value={flagged} sub={`${total ? Math.round((flagged / total) * 100) : 0}% of analyses`} accent="text-red-600 bg-red-50" />
+          <StatTile icon={AlertTriangle} label="Flagged" value={flagged} sub={`${total ? Math.round((flagged / total) * 100) : 0}% of analyses`} accent="text-red-600 bg-red-50" />
         </div>
 
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
@@ -247,7 +261,7 @@ export default function Dashboard() {
           </div>
           {stats.recent?.length ? (
             <div className="divide-y divide-slate-100 p-2">
-              {stats.recent.map((it) => <HistoryRow key={it.analysis_id} item={it} />)}
+              {stats.recent.map((it) => <HistoryRow key={itemKey(it)} item={it} />)}
             </div>
           ) : (
             <EmptyState icon={Images} title="No recent analyses" message="Analyses you run will show up here." />

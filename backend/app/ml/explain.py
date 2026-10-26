@@ -164,4 +164,7 @@ def render_heatmap(rgb: np.ndarray, sus_map: np.ndarray, regions: list[dict], fa
         x, y, bw, bh = [int(round(v * s)) for v in f["box"]]
         cv2.rectangle(out, (x, y), (x + bw, y + bh), color, lw)
         _label(out, text, x, y, color, fs)
-    Image.fromarray(out).save(path, "PNG")
+    if path.lower().endswith((".jpg", ".jpeg")):   # video frame overlays are saved as JPEG
+        Image.fromarray(out).save(path, "JPEG", quality=88)
+    else:
+        Image.fromarray(out).save(path, "PNG")

@@ -1,6 +1,6 @@
-import { FileSearch, Layers, Waves, Radio, ScanFace, Bot, Activity } from 'lucide-react'
+import { FileSearch, Layers, Waves, Radio, ScanFace, Bot, Activity, Timer } from 'lucide-react'
 
-const ICONS = { metadata: FileSearch, ela: Layers, noise: Waves, frequency: Radio, deepfake: ScanFace, ai_generated: Bot }
+const ICONS = { metadata: FileSearch, ela: Layers, noise: Waves, frequency: Radio, deepfake: ScanFace, ai_generated: Bot, temporal: Timer }
 
 function barColor(s) {
   if (s >= 0.66) return '#dc2626'

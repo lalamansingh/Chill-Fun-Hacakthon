@@ -232,7 +232,7 @@ def _table(rows: list[list], col_widths: list[float], header: bool = True, zebra
 
 
 # ---------------------------------------------------------------- page chrome
-def _make_page_cb(report_id: str):
+def _make_page_cb(report_id: str, subtitle: str = "AI Image Forensics"):
     def on_page(canvas, doc):
         canvas.saveState()
         # header band
@@ -246,7 +246,7 @@ def _make_page_cb(report_id: str):
         canvas.setFont("Helvetica", 8.5)
         canvas.setFillColor(colors.HexColor("#CBD5E1"))
         canvas.drawString(MARGIN + canvas.stringWidth("TruthLens", "Helvetica-Bold", 11) + 3 * mm,
-                          PAGE_H - 9 * mm, "AI Image Forensics")
+                          PAGE_H - 9 * mm, subtitle)
         canvas.drawRightString(PAGE_W - MARGIN, PAGE_H - 9 * mm, f"Report {report_id}")
         # footer
         canvas.setStrokeColor(LINE)
@@ -260,6 +260,35 @@ def _make_page_cb(report_id: str):
         canvas.restoreState()
 
     return on_page
+
+
+def _disclaimer_block(st, body: str) -> list:
+    disc = Table([[Paragraph(f"<b>Disclaimer.</b> {escape(DISCLAIMER)} {body}", st["small"])]],
+                 colWidths=[CONTENT_W])
+    disc.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), PANEL), ("BOX", (0, 0), (-1, -1), 0.6, LINE),
+                              ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+                              ("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 8)]))
+    return [Spacer(1, 6 * mm), KeepTogether(disc)]
+
+
+def _build_pdf(story: list, output_path: str, report_id: str, title: str, subject: str,
+               subtitle: str = "AI Image Forensics") -> str:
+    """Render `story` atomically (tmp file + rename) with the shared header/footer chrome."""
+    out = Path(output_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_suffix(".pdf.tmp")
+    doc = SimpleDocTemplate(
+        str(tmp), pagesize=A4, leftMargin=MARGIN, rightMargin=MARGIN, topMargin=22 * mm, bottomMargin=20 * mm,
+        title=title, author="TruthLens", subject=subject,
+    )
+    cb = _make_page_cb(report_id, subtitle)
+    try:
+        doc.build(story, onFirstPage=cb, onLaterPages=cb)
+        tmp.replace(out)
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+    return str(out)
 
 
 # ---------------------------------------------------------------- main
@@ -442,29 +471,11 @@ def generate_report_pdf(analysis, user, output_path: str) -> str:
             story += [KeepTogether(t), Spacer(1, 3 * mm)]
 
     # ---- closing disclaimer
-    story.append(Spacer(1, 6 * mm))
-    disc = Table([[Paragraph(
-        f"<b>Disclaimer.</b> {escape(DISCLAIMER)} TruthLens combines classical image forensics with machine-learning "
+    story += _disclaimer_block(
+        st,
+        "TruthLens combines classical image forensics with machine-learning "
         "detectors; every score is a probability estimate that can be wrong, especially for heavily compressed, "
         "resized or novel content. Findings should be weighed alongside provenance, context and expert review.",
-        st["small"])]], colWidths=[CONTENT_W])
-    disc.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), PANEL), ("BOX", (0, 0), (-1, -1), 0.6, LINE),
-                              ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-                              ("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 8)]))
-    story.append(KeepTogether(disc))
-
-    out = Path(output_path)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    tmp = out.with_suffix(".pdf.tmp")
-    doc = SimpleDocTemplate(
-        str(tmp), pagesize=A4, leftMargin=MARGIN, rightMargin=MARGIN, topMargin=22 * mm, bottomMargin=20 * mm,
-        title=f"TruthLens Forensic Report {report_id}", author="TruthLens", subject="Image forensic analysis",
     )
-    cb = _make_page_cb(report_id)
-    try:
-        doc.build(story, onFirstPage=cb, onLaterPages=cb)
-        tmp.replace(out)
-    finally:
-        if tmp.exists():
-            tmp.unlink()
-    return str(out)
+    return _build_pdf(story, output_path, report_id, title=f"TruthLens Forensic Report {report_id}",
+                      subject="Image forensic analysis")

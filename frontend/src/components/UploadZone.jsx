@@ -11,7 +11,15 @@ export function validateFile(file) {
   return ''
 }
 
-export default function UploadZone({ onFile, disabled }) {
+export default function UploadZone({
+  onFile,
+  disabled,
+  accept = ACCEPTED_TYPES.join(','),
+  noun = 'an image',
+  hint = 'JPEG, PNG or WebP · up to 10 MB',
+  icon: IdleIcon = UploadCloud,
+  dragIcon: DragIcon = ImagePlus,
+}) {
   const inputRef = useRef(null)
   const [drag, setDrag] = useState(false)
 
@@ -24,7 +32,7 @@ export default function UploadZone({ onFile, disabled }) {
     <div
       role="button"
       tabIndex={disabled ? -1 : 0}
-      aria-label="Upload an image: drag and drop or press Enter to browse"
+      aria-label={`Upload ${noun}: drag and drop or press Enter to browse`}
       aria-disabled={disabled}
       onClick={() => !disabled && inputRef.current?.click()}
       onKeyDown={(e) => {
@@ -48,17 +56,17 @@ export default function UploadZone({ onFile, disabled }) {
       } ${disabled ? 'pointer-events-none opacity-60' : ''}`}
     >
       <div className={`flex h-16 w-16 items-center justify-center rounded-xl bg-cyan-50 text-cyan-600 ring-1 ring-inset ring-cyan-100 transition ${drag ? 'scale-110 shadow-glow' : 'group-hover:shadow-glow'}`}>
-        {drag ? <ImagePlus className="h-8 w-8" aria-hidden /> : <UploadCloud className="h-8 w-8" aria-hidden />}
+        {drag ? <DragIcon className="h-8 w-8" aria-hidden /> : <IdleIcon className="h-8 w-8" aria-hidden />}
       </div>
-      <p className="mt-5 font-serif text-xl font-semibold text-slate-900">{drag ? 'Drop to upload' : 'Drag & drop an image here'}</p>
+      <p className="mt-5 font-serif text-xl font-semibold text-slate-900">{drag ? 'Drop to upload' : `Drag & drop ${noun} here`}</p>
       <p className="mt-1 text-sm text-slate-500">
         or <span className="font-semibold text-cyan-700 underline-offset-2 group-hover:underline">browse your files</span>
       </p>
-      <p className="mt-4 text-xs text-slate-400">JPEG, PNG or WebP · up to 10 MB</p>
+      <p className="mt-4 text-xs text-slate-400">{hint}</p>
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPTED_TYPES.join(',')}
+        accept={accept}
         className="hidden"
         onChange={(e) => {
           handle(e.target.files)

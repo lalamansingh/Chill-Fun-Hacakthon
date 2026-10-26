@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Analysis, Image, Restoration, User
+from app.models import Analysis, Image, Restoration, User, Video, VideoAnalysis
 from app.services.security import decode_access_token
 
 _bearer = HTTPBearer(auto_error=False)
@@ -72,3 +72,19 @@ def owned_restoration(db: Session, user: User, restoration_id: int) -> Restorati
     if r is None:
         raise HTTPException(status_code=404, detail="Restoration not found")
     return r
+
+
+def owned_video(db: Session, user: User, video_id: int) -> Video:
+    v = db.scalar(select(Video).where(Video.id == video_id, Video.user_id == user.id))
+    if v is None:
+        raise HTTPException(status_code=404, detail="Video not found")
+    return v
+
+
+def owned_video_analysis(db: Session, user: User, analysis_id: int) -> VideoAnalysis:
+    a = db.scalar(
+        select(VideoAnalysis).where(VideoAnalysis.id == analysis_id, VideoAnalysis.user_id == user.id)
+    )
+    if a is None:
+        raise HTTPException(status_code=404, detail="Video analysis not found")
+    return a

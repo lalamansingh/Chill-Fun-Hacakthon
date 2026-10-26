@@ -15,6 +15,7 @@ const CRUMBS = [
   [/^\/analyze/, 'New analysis'],
   [/^\/history/, 'History'],
   [/^\/analyses\//, 'Analysis report'],
+  [/^\/video-analyses\//, 'Video report'],
 ]
 
 function initials(name = '') {

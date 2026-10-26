@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import {
-  ShieldCheck, ScanFace, Bot, Flame, Wand2, FileText, LayoutDashboard, Lock,
+  ShieldCheck, ScanFace, Bot, Flame, Wand2, FileText, Film, Lock,
   Upload, Cpu, Microscope, Brain, Crosshair, Eye, ClipboardCheck, ArrowRight, Check, Minus,
 } from 'lucide-react'
 import { PublicFooter, PublicNav } from '../components/PublicLayout.jsx'
@@ -18,13 +18,13 @@ const FEATURES = [
   { icon: Bot, title: 'AI-generated detection', text: 'Identifies fully synthetic images from diffusion and GAN generators.' },
   { icon: Flame, title: 'Explainable evidence', text: 'Heatmaps, ELA maps and region boxes show exactly where the evidence lies.' },
   { icon: Wand2, title: 'Intelligent restoration', text: 'Reconstruct flagged or hand-marked regions — always labelled as AI-reconstructed.' },
-  { icon: FileText, title: 'Forensic PDF reports', text: 'One-click, shareable reports with verdict, signals, heatmaps and metadata.' },
-  { icon: LayoutDashboard, title: 'Analytics dashboard', text: 'Track verdict trends, average authenticity and recent investigations.' },
+  { icon: FileText, title: 'Reports & dashboard', text: 'One-click forensic PDF reports, plus a dashboard tracking verdict trends and recent investigations.' },
+  { icon: Film, title: 'Video deepfake analysis', text: 'Frame-by-frame face analysis with a suspicion timeline that jumps straight to the most suspicious moments.' },
   { icon: Lock, title: 'Private by design', text: 'JWT-secured accounts. Every image, analysis and report is isolated per user.' },
 ]
 
 const STEPS = [
-  { icon: Upload, title: 'Upload', text: 'JPEG, PNG or WebP up to 10 MB, validated server-side.' },
+  { icon: Upload, title: 'Upload', text: 'Images up to 10 MB or videos up to 100 MB, validated server-side.' },
   { icon: Cpu, title: 'Preprocess', text: 'Orientation, normalisation, hashing and EXIF extraction.' },
   { icon: Microscope, title: 'Forensics', text: 'Error level, sensor-noise and frequency-domain analysis.' },
   { icon: Brain, title: 'Detection', text: 'Deepfake and AI-generated models run on CPU in seconds.' },
@@ -77,8 +77,8 @@ export default function Landing() {
               <span className="text-slate-400">Understand every verdict.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-              TruthLens detects deepfakes, AI-generated content and photo manipulation, then shows the evidence:
-              heatmaps, suspicious regions, per-signal reasoning and a forensic PDF report.
+              TruthLens detects deepfakes, AI-generated content and photo manipulation in images and short videos, then
+              shows the evidence: heatmaps, suspicious regions, frame-by-frame timelines and a forensic PDF report.
             </p>
             <div className="mt-9 flex flex-wrap justify-center gap-3">
               <Link to={primaryTo} className="btn-primary h-11 px-5 text-[15px]">

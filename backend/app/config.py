@@ -1,4 +1,4 @@
-"""Runtime configuration (docs/CONTRACT.md §2)."""
+"""Runtime configuration (docs/CONTRACT.md §2, §6.1)."""
 from functools import lru_cache
 from pathlib import Path
 
@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     MAX_UPLOAD_MB: int = 10
     ML_ENABLE_DEEP: bool = True
     MODEL_CACHE_DIR: str = "./models_cache"
+    MAX_VIDEO_MB: int = 100
+    VIDEO_MAX_FRAMES: int = 16
 
     JWT_ALGORITHM: str = "HS256"
 
@@ -30,6 +32,10 @@ class Settings(BaseSettings):
     @property
     def max_upload_bytes(self) -> int:
         return self.MAX_UPLOAD_MB * 1024 * 1024
+
+    @property
+    def max_video_bytes(self) -> int:
+        return self.MAX_VIDEO_MB * 1024 * 1024
 
     @property
     def is_sqlite(self) -> bool:

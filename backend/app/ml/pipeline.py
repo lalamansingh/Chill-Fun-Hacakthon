@@ -3,6 +3,8 @@
     analyze_image(image_path, output_dir) -> dict
     restore_image(image_path, output_path, boxes=None, mask_path=None) -> dict
     warmup() -> None
+    probe_video(video_path) -> dict                               (§6, implemented in video.py)
+    analyze_video(video_path, output_dir, max_frames=None) -> dict (§6, implemented in video.py)
 
 Stages: preprocessing -> classical forensics (metadata, ELA, noise, frequency) -> face detection ->
 deep detectors (deepfake per face, AI-generated whole image; only if ML_ENABLE_DEEP != "false") ->
@@ -28,6 +30,7 @@ from .forensics.noise import analyze_noise
 from .preprocessing import load_image
 from .restoration import restore
 from .utils import deep_enabled, to_py
+from .video import analyze_video, probe_video  # noqa: F401  (re-exported for the backend, CONTRACT §6.2)
 
 log = logging.getLogger(__name__)
 

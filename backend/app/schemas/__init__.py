@@ -1,4 +1,4 @@
-"""Pydantic request/response schemas (docs/CONTRACT.md §5)."""
+"""Pydantic request/response schemas (docs/CONTRACT.md §5, §6)."""
 from datetime import datetime, timezone
 from typing import Any, Literal, Optional
 
@@ -114,16 +114,50 @@ class RestoreIn(BaseModel):
         return v or None
 
 
+# ---------- videos ----------
+class VideoOut(_Out):
+    id: int
+    original_filename: str
+    mime_type: str
+    size_bytes: int
+    width: int
+    height: int
+    duration_s: float
+    fps: float
+    frame_count: int
+    uploaded_at: datetime
+    url: str
+
+
+class VideoAnalysisCreateIn(BaseModel):
+    video_id: int
+
+
+class VideoAnalysisOut(_Out):
+    id: int
+    video_id: int
+    verdict: str
+    authenticity_score: float
+    confidence: float
+    created_at: datetime
+    processing_ms: int
+    result: dict[str, Any]
+    video: VideoOut
+    report_url: str
+
+
 # ---------- history / dashboard ----------
 class HistoryItem(_Out):
     analysis_id: int
-    image_id: int
+    image_id: Optional[int]
     original_filename: str
     verdict: str
     authenticity_score: float
     confidence: float
     created_at: datetime
-    thumbnail_url: str
+    thumbnail_url: Optional[str]
+    media_type: Literal["image", "video"] = "image"
+    video_id: Optional[int] = None
 
 
 class HistoryPage(BaseModel):
@@ -144,11 +178,18 @@ class TrendPoint(VerdictCounts):
     date: str
 
 
+class MediaCounts(BaseModel):
+    image: int = 0
+    video: int = 0
+
+
 class DashboardStats(BaseModel):
     total_images: int
+    total_videos: int
     total_analyses: int
     avg_authenticity_score: float
     by_verdict: VerdictCounts
+    by_media: MediaCounts
     trend: list[TrendPoint]
     recent: list[HistoryItem]
 

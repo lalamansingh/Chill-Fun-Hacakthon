@@ -169,5 +169,106 @@ DashboardStats = { total_images, total_analyses, avg_authenticity_score,
 
 Datetimes are ISO-8601 strings (UTC).
 
+## 6. Video analysis (v2)
+
+Users can also upload a short video (MP4 / MOV / WebM / AVI / MKV, ≤ `MAX_VIDEO_MB`, default 100) and get
+a deepfake / AI-generated verdict with a per-frame suspicion timeline and the most suspicious frames.
+Classical image forensics (ELA, noise) are NOT run on video frames — video codecs destroy those traces.
+
+### 6.1 New env vars
+| Var | Default | Notes |
+|---|---|---|
+| `MAX_VIDEO_MB` | `100` | upload cap for videos (413 above it) |
+| `VIDEO_MAX_FRAMES` | `16` | frames sampled evenly across the video for analysis |
+
+### 6.2 ML interface (added to backend/app/ml/pipeline.py — still the only module the backend imports)
+
+```python
+def probe_video(video_path: str) -> dict: ...
+    # -> {"duration_s": float, "fps": float, "frame_count": int, "width": int, "height": int,
+    #     "codec": str|None, "format": str|None}
+    # raises ValueError if the file is not a decodable video (backend maps that to 400)
+
+def analyze_video(video_path: str, output_dir: str, max_frames: int | None = None) -> dict: ...
+```
+
+`analyze_video` writes JPEG/PNG files into `output_dir` and returns (all keys always present):
+
+```json
+{
+  "media_type": "video",
+  "verdict": "authentic | manipulated | deepfake | ai_generated",
+  "authenticity_score": 0-100,
+  "confidence": 0.0-1.0,
+  "summary": "plain-English explanation",
+  "uncertainty_note": "string",
+  "signals": [   // same shape as image signals; keys: "deepfake", "ai_generated", "temporal", "metadata"
+    {"key": "deepfake", "label": "Face deepfake (across frames)", "score": 0.0-1.0, "weight": 0.0-1.0,
+     "available": true, "explanation": "string", "details": {}}
+  ],
+  "video": {"duration_s": 0.0, "fps": 0.0, "frame_count": 0, "width": 0, "height": 0,
+            "codec": "h264 or null", "format": "mp4 or null"},
+  "frames": [    // sampled frames, ordered by time
+    {"index": 0, "timestamp_s": 0.0,
+     "suspicion": 0.0-1.0,                       // fused per-frame suspicion
+     "deepfake_probability": 0.0-1.0 | null,     // max over analysed faces; null = no face analysed
+     "ai_generated_probability": 0.0-1.0 | null, // null = model unavailable
+     "faces": [{"box": [x, y, w, h], "deepfake_probability": 0.0-1.0 | null}],
+     "thumbnail_path": "/abs/path/in/output_dir/frame_000.jpg",
+     "heatmap_path": "/abs/path/in/output_dir/frame_000_heat.jpg or null"}
+  ],
+  "top_frames": [3, 7],          // indices into `frames`, most suspicious first, at most 4
+  "faces_detected_frames": 0,    // how many sampled frames contained at least one face
+  "metadata": {"encoder": "string or null", "generator_hint": "Sora | Runway | ... | null", "tags": {}},
+  "processing_ms": 0,
+  "model_versions": {"deepfake": "id or null", "ai_generated": "id or null"}
+}
+```
+
+Box coordinates are in the video's display pixel space (`video.width` × `video.height`). All values are plain
+JSON types. Thumbnails are ≤ 640 px on the long side.
+
+### 6.3 Database (new tables, new Alembic migration)
+- `videos`: id PK, user_id FK→users (cascade), original_filename, stored_filename, mime_type, size_bytes,
+  width, height, duration_s (float), fps (float), frame_count, sha256, uploaded_at
+- `video_analyses`: id PK, video_id FK→videos (cascade), user_id FK→users, verdict, authenticity_score,
+  confidence, result_json (JSON), processing_ms, report_path (nullable), created_at
+- Storage: `STORAGE_DIR/videos/<uuid>.<ext>` and `STORAGE_DIR/video_analyses/<id>/`.
+
+### 6.4 REST API additions
+
+| Method | Path | Body / Query | Response |
+|---|---|---|---|
+| POST | `/api/videos` | multipart, field `file` | `VideoOut` (201); 400 bad type/undecodable, 413 too large |
+| GET | `/api/videos` | – | `VideoOut[]` newest first |
+| GET | `/api/videos/{id}` | – | `VideoOut` |
+| GET 📎 | `/api/videos/{id}/file` | – | video bytes; MUST support HTTP Range (seeking in `<video>`) |
+| DELETE | `/api/videos/{id}` | – | 204 (deletes files + analyses) |
+| POST | `/api/video-analyses` | `{video_id}` | `VideoAnalysisOut` (201) — runs synchronously |
+| GET | `/api/video-analyses/{id}` | – | `VideoAnalysisOut` |
+| GET 📎 | `/api/video-analyses/{id}/files/{name}` | – | a frame thumbnail / heatmap written by the pipeline (basename only; anything else → 404) |
+| GET 📎 | `/api/video-analyses/{id}/report` | – | PDF video forensic report (generated on first request, cached) |
+
+```ts
+VideoOut         = { id, original_filename, mime_type, size_bytes, width, height, duration_s, fps,
+                     frame_count, uploaded_at, url /* /api/videos/{id}/file */ }
+VideoAnalysisOut = { id, video_id, verdict, authenticity_score, confidence, created_at, processing_ms,
+                     result /* analyze_video dict; every frames[].thumbnail_path / heatmap_path is REMOVED and
+                               replaced by thumbnail_url / heatmap_url (/api/video-analyses/{id}/files/<basename>, or null) */,
+                     video: VideoOut, report_url /* /api/video-analyses/{id}/report */ }
+```
+
+### 6.5 Changes to existing endpoints (backward compatible)
+- `HistoryItem` gains `media_type: "image" | "video"` and `video_id: number | null`. For video rows
+  `analysis_id` is the video-analysis id, `image_id` is null, and `thumbnail_url` is the most suspicious
+  frame's thumbnail url (or null). `/api/history` gains query param `media` = `""` (both, default) |
+  `image` | `video`; `q` and `verdict` filter both kinds. Merged list sorted by `created_at` desc.
+- `DashboardStats` gains `total_videos` and `by_media: { image: n, video: n }` (counts of analyses).
+  `total_analyses`, `avg_authenticity_score`, `by_verdict`, `trend` and `recent` now include video analyses.
+  `total_images` stays images only.
+- Frontend routes: image result `/analyses/:id`, video result `/video-analyses/:id`.
+
 ## Changelog
 - v1 — initial contract.
+- v2 — §6 video analysis (new endpoints, tables, ML functions; HistoryItem/DashboardStats additions).
+- v2.1 — backend: `POST /api/videos` and `POST /api/video-analyses` return 503 if the installed ML pipeline lacks `probe_video`/`analyze_video` (additive; no shape changes).

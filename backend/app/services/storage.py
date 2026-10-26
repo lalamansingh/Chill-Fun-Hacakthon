@@ -5,7 +5,7 @@ from typing import Optional
 
 from app.config import get_settings
 
-SUBDIRS = ("uploads", "analyses", "restored", "reports")
+SUBDIRS = ("uploads", "analyses", "restored", "reports", "videos", "video_analyses")
 
 
 def root() -> Path:
@@ -47,6 +47,14 @@ def upload_path(stored_filename: str) -> Path:
 
 def analysis_dir(analysis_id: int) -> Path:
     return root() / "analyses" / str(analysis_id)
+
+
+def video_path(stored_filename: str) -> Path:
+    return root() / "videos" / stored_filename
+
+
+def video_analysis_dir(analysis_id: int) -> Path:
+    return root() / "video_analyses" / str(analysis_id)
 
 
 def safe_unlink(path: Optional[str | Path]) -> None:
